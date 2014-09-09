@@ -35,6 +35,7 @@ using NUnit.Framework.Api;
 using NUnit.Framework.Internal;
 using NUnit.Framework.Internal.Commands;
 using NUnit.Framework.Internal.WorkItems;
+using System.Threading.Tasks;
 
 namespace MonoTouch.NUnit.UI {
 	
@@ -111,7 +112,7 @@ namespace MonoTouch.NUnit.UI {
 
 			// large unit tests applications can take more time to initialize
 			// than what the iOS watchdog will allow them on devices
-			ThreadPool.QueueUserWorkItem (delegate {
+            ThreadPool.QueueUserWorkItem (delegate {
 				foreach (Assembly assembly in assemblies)
 					Load (assembly, null);
 
@@ -124,7 +125,7 @@ namespace MonoTouch.NUnit.UI {
 					main.Caption = null;
 					menu.Reload (main, UITableViewRowAnimation.Fade);
 					
-					options.Insert (0, new StringElement ("Run Everything", Run));
+                    options.Insert (0, new StringElement ("Run Everything", async () => await Run()));
 					menu.Reload (options, UITableViewRowAnimation.Fade);
 				});
 				assemblies.Clear ();
@@ -134,10 +135,10 @@ namespace MonoTouch.NUnit.UI {
 
 			// AutoStart running the tests (with either the supplied 'writer' or the options)
 			if (AutoStart) {
-				ThreadPool.QueueUserWorkItem (delegate {
+                ThreadPool.QueueUserWorkItem (delegate {
 					mre.WaitOne ();
-					window.BeginInvokeOnMainThread (delegate {
-						Run ();	
+                    window.BeginInvokeOnMainThread (async delegate {
+                        await Run ();	
 						// optionally end the process, e.g. click "Touch.Unit" -> log tests results, return to springboard...
 						// http://stackoverflow.com/questions/1978695/uiapplication-sharedapplication-terminatewithsuccess-is-not-there
 						if (TerminateAfterExecution)
@@ -148,12 +149,12 @@ namespace MonoTouch.NUnit.UI {
 			return dv;
 		}
 		
-		void Run ()
+        async Task Run ()
 		{
 			if (!OpenWriter ("Run Everything"))
 				return;
 			try {
-				Run (suite);
+                await Run (suite);
 			}
 			finally {
 				CloseWriter ();
@@ -348,9 +349,9 @@ namespace MonoTouch.NUnit.UI {
 			
 			if (section.Count > 1) {
 				Section options = new Section () {
-					new StringElement ("Run all", delegate () {
+                    new StringElement ("Run all", async delegate () {
 						if (OpenWriter (suite.Name)) {
-							Run (suite);
+                            await Run (suite);
 							CloseWriter ();
 							suites_dvc [suite].Filter ();
 						}
@@ -453,14 +454,14 @@ namespace MonoTouch.NUnit.UI {
 			return true;
 		}
 
-		public TestResult Run (Test test)
+        public async Task<TestResult> Run (Test test)
 		{
 			Result = null;
 			TestExecutionContext current = TestExecutionContext.CurrentContext;
 			current.WorkDirectory = Environment.CurrentDirectory;
 			current.Listener = this;
 			WorkItem wi = test.CreateWorkItem (filter);
-			wi.Execute (current);
+            await wi.Execute (current);
 			Result = wi.Result;
 			return Result;
 		}

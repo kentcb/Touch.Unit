@@ -24,6 +24,7 @@ using MonoTouch.Dialog;
 using MonoTouch.UIKit;
 
 using NUnit.Framework.Internal;
+using System.Threading.Tasks;
 
 namespace MonoTouch.NUnit.UI {
 
@@ -51,9 +52,9 @@ namespace MonoTouch.NUnit.UI {
 			get { return Test as TestSuite; }
 		}
 		
-		public void Run ()
+        public async Task Run ()
 		{
-			Result = Runner.Run (Suite);
+            Result = await Runner.Run (Suite);
 		}
 		
 		public override void Update ()

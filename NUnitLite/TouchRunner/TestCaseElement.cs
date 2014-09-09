@@ -26,6 +26,7 @@ using MonoTouch.UIKit;
 using NUnit.Framework;
 using NUnit.Framework.Internal;
 using NUnit.Framework.Api;
+using System.Threading.Tasks;
 
 namespace MonoTouch.NUnit.UI {
 	
@@ -36,7 +37,7 @@ namespace MonoTouch.NUnit.UI {
 		{
 			Caption = testCase.Name;
 			Value = "NotExecuted";
-			this.Tapped += delegate {
+            this.Tapped += async delegate {
 				if (!Runner.OpenWriter (Test.FullName))
 					return;
 
@@ -44,9 +45,9 @@ namespace MonoTouch.NUnit.UI {
 				var context = TestExecutionContext.CurrentContext;
 				context.TestObject = Reflect.Construct (testCase.Method.ReflectedType, null);
 
-				suite.GetOneTimeSetUpCommand ().Execute (context);
-				Run ();
-				suite.GetOneTimeTearDownCommand ().Execute (context);
+                await suite.GetOneTimeSetUpCommand ().Execute (context);
+                await Run ();
+                await suite.GetOneTimeTearDownCommand ().Execute (context);
 
 				Runner.CloseWriter ();
 				// display more details on (any) failure (but not when ignored)
@@ -69,9 +70,9 @@ namespace MonoTouch.NUnit.UI {
 			get { return Test as TestMethod; }
 		}
 		
-		public void Run ()
+        public async Task Run ()
 		{
-			Update (Runner.Run (TestCase));
+            Update (await Runner.Run (TestCase));
 		}
 		
 		public override void Update ()
